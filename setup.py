@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'race-line-optimizer'
+package_name = 'race_line_optimizer'
 
 setup(
     name=package_name,
@@ -10,6 +10,7 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/launch', ['launch/race_line_optimizer_launch.py']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -20,6 +21,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            'race_line_optimizer = race_line_optimizer.race_line_optimizer:main',
         ],
     },
 )

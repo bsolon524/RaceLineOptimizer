@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from rclpy.clock import ROSClock
@@ -13,7 +14,7 @@ class RaceLineOptimizer(Node):
         super().__init__('race_line_optimizer')
         self.publisher_ = self.create_publisher(PolygonStamped, 'optimized_trail', 10)
         timer_period = 0.5  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        #self.timer = self.create_timer(timer_period, self.timer_callback)
         self.i = 0
         self.subscription = self.create_subscription(
             PolygonStamped,
@@ -28,20 +29,19 @@ class RaceLineOptimizer(Node):
     #    self.get_logger().info('Publishing: "%s"' % msg.data)
     #    self.i += 1
 
- def listener_callback(self, msg: PolygonStamped):
-        
+    def listener_callback(self, msg: PolygonStamped):
+        print('cool')
         
 def main(args=None):
     rclpy.init(args=args)
 
-    minimal_publisher = MinimalPublisher()
+    race_line_optimizer = RaceLineOptimizer()
 
-    rclpy.spin(minimal_publisher)
-
-    # Destroy the node explicitly
-    # (optional - otherwise it will be done automatically
-    # when the garbage collector destroys the node object)
-    minimal_publisher.destroy_node()
+    rclpy.spin(race_line_optimizer)
+# Destroy the node explicitly
+# (optional - otherwise it will be done automatically
+# when the garbage collector destroys the node object)
+    race_line_optimizer.destroy_node()
     rclpy.shutdown()
 
 
