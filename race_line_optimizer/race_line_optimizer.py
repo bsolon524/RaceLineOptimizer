@@ -6,6 +6,8 @@ from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Header
 from geometry_msgs.msg import PolygonStamped, Point32
+from scipy.interpolate import CubicSpline
+import numpy as np
 
 
 class RaceLineOptimizer(Node):
@@ -30,7 +32,25 @@ class RaceLineOptimizer(Node):
     #    self.i += 1
 
     def listener_callback(self, msg: PolygonStamped):
-        print('cool')
+        # Extracting x and y coordinates from the incoming message
+        x = [point.x for point in msg.polygon.points]
+        y = [point.y for point in msg.polygon.points]
+
+        # Interpolating using cubic spline
+        cs = CubicSpline(x, y)
+
+        # Generating new x and y values (You can customize the number of points if needed)
+        x_new = np.linspace(min(x), max(x), len(x))
+        y_new = cs(x_new)
+
+        # Creating a new PolygonStamped message
+        optimized_msg = PolygonStamped()
+        optimized_msg.header = Header(stamp=ROSClock().now().to_msg(), frame_id="map")
+        optimized_msg.polygon.points = [Point32(x_val, y_val, 0.0) for x_val, y_val in zip(x_new, y_new)]
+
+        # Publishing the optimized message
+        self.publisher_.publish(optimized_msg)
+
         
 def main(args=None):
     rclpy.init(args=args)
