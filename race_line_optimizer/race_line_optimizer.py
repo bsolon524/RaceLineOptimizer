@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 import rclpy
 from rclpy.node import Node
 from rclpy.clock import ROSClock
@@ -6,8 +5,8 @@ from std_msgs.msg import String
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Header
 from geometry_msgs.msg import PolygonStamped, Point32
-from scipy.interpolate import CubicSpline
 import numpy as np
+from scipy.interpolate import CubicSpline
 
 
 class RaceLineOptimizer(Node):
@@ -15,52 +14,55 @@ class RaceLineOptimizer(Node):
     def __init__(self):
         super().__init__('race_line_optimizer')
         self.publisher_ = self.create_publisher(PolygonStamped, 'optimized_trail', 10)
-        timer_period = 0.5  # seconds
-        #self.timer = self.create_timer(timer_period, self.timer_callback)
-        self.i = 0
         self.subscription = self.create_subscription(
             PolygonStamped,
-            'slime_trail',
+            'polygon_topic',
             self.listener_callback,
             10)
-        self.subscription 
-    #def timer_callback(self):
-    #    msg = String()
-    #    msg.data = 'Hello World: %d' % self.i
-    #    self.publisher_.publish(msg)
-    #    self.get_logger().info('Publishing: "%s"' % msg.data)
-    #    self.i += 1
+        self.subscription  # prevent unused variable warning
 
     def listener_callback(self, msg: PolygonStamped):
-        # Extracting x and y coordinates from the incoming message
-        x = [point.x for point in msg.polygon.points]
-        y = [point.y for point in msg.polygon.points]
+        # Extract x and y coordinates from the received message
+        x = np.array([point.x for point in msg.polygon.points])
+        y = np.array([point.y for point in msg.polygon.points])
+    
+        # Data smoothing (using a simple moving average for example)
+        window_size = 10  # or choose another suitable size
+        x_smooth = np.convolve(x, np.ones(window_size)/window_size, mode='valid')
+        y_smooth = np.convolve(y, np.ones(window_size)/window_size, mode='valid')
+    
+        # Ensure start and end points are the same for periodicity
+        x_smooth[0] = x_smooth[-1]
+        y_smooth[0] = y_smooth[-1]
+    
+        # Create a pseudo-time parameter
+        t = np.arange(len(x_smooth))
+    
+        # Create parametric splines
+        spline_x = CubicSpline(t, x_smooth, bc_type='periodic')
+        spline_y = CubicSpline(t, y_smooth, bc_type='periodic')
+    
+        # Interpolate using the splines with more t-values for a smoother curve
+        t_new = np.linspace(0, len(x_smooth)-1, len(x_smooth)*10)  # 10 times more points
+        x_new = spline_x(t_new)
+        y_new = spline_y(t_new)
+    
+        # Create a new PolygonStamped message for the optimized trail
+        optimized_trail = PolygonStamped()
+        optimized_trail.header = msg.header  # Use the same header from the received message
+        optimized_trail.polygon.points = [Point32(x=x_val, y=y_val) for x_val, y_val in zip(x_new, y_new)]
+    
+        # Publish the optimized trail
+        self.publisher_.publish(optimized_trail)
 
-        # Interpolating using cubic spline
-        cs = CubicSpline(x, y)
 
-        # Generating new x and y values (You can customize the number of points if needed)
-        x_new = np.linspace(min(x), max(x), len(x))
-        y_new = cs(x_new)
-
-        # Creating a new PolygonStamped message
-        optimized_msg = PolygonStamped()
-        optimized_msg.header = Header(stamp=ROSClock().now().to_msg(), frame_id="map")
-        optimized_msg.polygon.points = [Point32(x_val, y_val, 0.0) for x_val, y_val in zip(x_new, y_new)]
-
-        # Publishing the optimized message
-        self.publisher_.publish(optimized_msg)
-
-        
 def main(args=None):
     rclpy.init(args=args)
 
     race_line_optimizer = RaceLineOptimizer()
 
     rclpy.spin(race_line_optimizer)
-# Destroy the node explicitly
-# (optional - otherwise it will be done automatically
-# when the garbage collector destroys the node object)
+
     race_line_optimizer.destroy_node()
     rclpy.shutdown()
 
