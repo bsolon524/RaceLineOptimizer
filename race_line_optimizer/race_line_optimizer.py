@@ -27,7 +27,7 @@ class RaceLineOptimizer(Node):
         y = np.array([point.y for point in msg.polygon.points])
     
         # Data smoothing (using a simple moving average for example)
-        window_size = 10  # or choose another suitable size
+        window_size = 12  # or choose another suitable size
         x_smooth = np.convolve(x, np.ones(window_size)/window_size, mode='valid')
         y_smooth = np.convolve(y, np.ones(window_size)/window_size, mode='valid')
     
@@ -46,7 +46,7 @@ class RaceLineOptimizer(Node):
         t_new = np.linspace(0, len(x_smooth)-1, len(x_smooth)*10)  # 10 times more points
         x_new = spline_x(t_new)
         y_new = spline_y(t_new)
-    
+
         # Create a new PolygonStamped message for the optimized trail
         optimized_trail = PolygonStamped()
         optimized_trail.header = msg.header  # Use the same header from the received message
